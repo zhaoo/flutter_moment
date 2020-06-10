@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_moment/api/cloud_music_api.dart';
 import 'dart:math';
+import 'package:transparent_image/transparent_image.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -9,7 +11,9 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   CloudMusicApi cloudMusicApi = new CloudMusicApi();
+  AudioPlayer audioPlayer = AudioPlayer();
   Map<String, String> currentMusic;
+  String playStatus = 'stop';
 
   @override
   void initState() {
@@ -38,56 +42,138 @@ class _HomeState extends State<Home> {
     }
   }
 
+  void _playMusic() async {
+    int res = await audioPlayer.play(currentMusic['url']);
+    if (res == 1) {
+      setState(() {
+        playStatus = 'play';
+      });
+    }
+  }
+
+  void _stopMusic() async {
+    int res = await audioPlayer.stop();
+    if (res == 1) {
+      setState(() {
+        playStatus = 'stop';
+      });
+    }
+  }
+
+  void _pauseMusic() async {
+    int res = await audioPlayer.pause();
+    if (res == 1) {
+      setState(() {
+        playStatus = 'pause';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
       appBar: _appBar(),
-      body: _body(currentMusic),
+      body: _body(),
     );
   }
-}
 
-Widget _appBar() => AppBar(
-      title: Text('辛巳'),
-    );
-
-Widget _body(Map currentMusic) {
-  if (currentMusic == null) {
-    return Container();
+  Widget _appBar() {
+    if (currentMusic == null) {
+      return AppBar();
+    }
+    return AppBar(title: Text(currentMusic['name']));
   }
 
-  return Card(
-      margin: EdgeInsets.fromLTRB(15, 15, 15, 90),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(0))),
-      elevation: 3,
-      child: Column(
-        children: <Widget>[
-          Image(
-            image: NetworkImage(currentMusic['pic']),
-            fit: BoxFit.fill,
-          ),
-          Container(
-              padding: EdgeInsets.all(30),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    currentMusic['comment'].toString(),
-                    softWrap: true,
-                    textAlign: TextAlign.justify,
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 5,
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  Text(
-                    "「 ${currentMusic['commentUser'].toString()} 」",
-                    textAlign: TextAlign.right,
-                  )
-                ],
-              )
-          )
-        ],
-      )
-  );
+  Widget _body() {
+    if (currentMusic == null) {
+      return Container();
+    }
+    return Card(
+        margin: EdgeInsets.fromLTRB(15, 15, 15, 90),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(0))),
+        elevation: 2,
+        child: Column(
+          children: <Widget>[
+            FadeInImage.memoryNetwork(
+              image: currentMusic['pic'],
+              placeholder: kTransparentImage,
+              width: MediaQuery.of(context).size.width - 30,
+              height: MediaQuery.of(context).size.width - 30,
+              fit: BoxFit.cover,
+            ),
+            Container(
+                padding: EdgeInsets.all(30),
+                child: Column(
+                  children: <Widget>[
+                    Text(
+                      currentMusic['comment'].toString(),
+                      softWrap: true,
+                      textAlign: TextAlign.justify,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 5,
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    Container(
+                      alignment: Alignment.centerRight,
+                      margin: EdgeInsets.fromLTRB(0, 10, 0, 0),
+                      child: Text(
+                        "「 ${currentMusic['commentUser'].toString()} 」",
+                      ),
+                    ),
+                    FlatButton(
+                      onPressed: () {
+                        _showPlayControl();
+                      },
+                      child: playStatus == 'play' ? Text('暂停') : Text('播放'),
+                    )
+                  ],
+                ))
+          ],
+        ));
+  }
+
+  void _showPlayControl() {
+    showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          return StatefulBuilder(builder: (BuildContext context, StateSetter setState) {
+            return Container(
+              height: 100,
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    IconButton(
+                      iconSize: 36,
+                      icon: Icon(Icons.skip_previous),
+                      onPressed: () {},
+                    ),
+                    IconButton(
+                      iconSize: 48,
+                      icon: playStatus == 'play'
+                          ? Icon(Icons.pause)
+                          : Icon(Icons.play_arrow),
+                      onPressed: () {
+                        // print(playStatus);
+                        if (playStatus == 'play') {
+                          _pauseMusic();
+                        } else {
+                          _playMusic();
+                        }
+                      },
+                    ),
+                    IconButton(
+                      iconSize: 36,
+                      icon: Icon(Icons.skip_next),
+                      onPressed: () {},
+                    ),
+                    playStatus == 'play' ? Text('暂停') : Text('播放')
+                  ],
+                ),
+              ),
+            );
+          });
+        });
+  }
 }

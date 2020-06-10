@@ -1,7 +1,7 @@
 import 'package:flutter_moment/api/http.dart';
 
 class CloudMusicApi {
-  static const BASE_URL = 'http://musicapi.leanapp.cn';
+  static const BASE_URL = 'https://musicapi.leanapp.cn';
 
   getPlayList() async {
     var res = await Http.get(BASE_URL+'/playlist/detail?id=879463910');
@@ -24,7 +24,11 @@ class CloudMusicApi {
     params['id'] = id.toString();
     var res = await Http.get(BASE_URL+'/comment/music', params: params);
     if(res['code'] == 200) {
-      return res['hotComments'][0];
+      if(!res['hotComments'].isEmpty) {
+        return res['hotComments'][0];
+      } else {
+        return res['comments'][0];
+      }
     }
   }
 }
