@@ -43,30 +43,15 @@ class _HomeState extends State<Home> {
   }
 
   void _playMusic() async {
-    int res = await audioPlayer.play(currentMusic['url']);
-    if (res == 1) {
-      setState(() {
-        playStatus = 'play';
-      });
-    }
+    await audioPlayer.play(currentMusic['url']);
   }
 
   void _stopMusic() async {
-    int res = await audioPlayer.stop();
-    if (res == 1) {
-      setState(() {
-        playStatus = 'stop';
-      });
-    }
+    await audioPlayer.stop();
   }
 
   void _pauseMusic() async {
-    int res = await audioPlayer.pause();
-    if (res == 1) {
-      setState(() {
-        playStatus = 'pause';
-      });
-    }
+    await audioPlayer.pause();
   }
 
   @override
@@ -137,7 +122,8 @@ class _HomeState extends State<Home> {
     showModalBottomSheet(
         context: context,
         builder: (BuildContext context) {
-          return StatefulBuilder(builder: (BuildContext context, StateSetter setState) {
+          return StatefulBuilder(
+              builder: (BuildContext context, StateSetter state) {
             return Container(
               height: 100,
               child: Center(
@@ -147,7 +133,9 @@ class _HomeState extends State<Home> {
                     IconButton(
                       iconSize: 36,
                       icon: Icon(Icons.skip_previous),
-                      onPressed: () {},
+                      onPressed: () {
+                        _getRandMusic();
+                      },
                     ),
                     IconButton(
                       iconSize: 48,
@@ -155,10 +143,15 @@ class _HomeState extends State<Home> {
                           ? Icon(Icons.pause)
                           : Icon(Icons.play_arrow),
                       onPressed: () {
-                        // print(playStatus);
                         if (playStatus == 'play') {
+                          state(() {
+                            playStatus = 'pause';
+                          });
                           _pauseMusic();
                         } else {
+                          state(() {
+                            playStatus = 'play';
+                          });
                           _playMusic();
                         }
                       },
@@ -166,9 +159,10 @@ class _HomeState extends State<Home> {
                     IconButton(
                       iconSize: 36,
                       icon: Icon(Icons.skip_next),
-                      onPressed: () {},
+                      onPressed: () {
+                        _getRandMusic();
+                      },
                     ),
-                    playStatus == 'play' ? Text('暂停') : Text('播放')
                   ],
                 ),
               ),
