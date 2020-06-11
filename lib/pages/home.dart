@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_moment/api/cloud_music_api.dart';
+import 'package:flutter_moment/api/weather_api.dart';
 import 'dart:math';
 import 'package:transparent_image/transparent_image.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:amap_location/amap_location.dart';
+import 'package:location_permissions/location_permissions.dart';
 
 class Home extends StatefulWidget {
   @override
@@ -10,15 +13,41 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  WeatherApi weatherApi = new WeatherApi();
   CloudMusicApi cloudMusicApi = new CloudMusicApi();
   AudioPlayer audioPlayer = AudioPlayer();
+
   Map<String, String> currentMusic;
+  Map<String, String> weather;
   String playStatus = 'stop';
 
   @override
   void initState() {
     super.initState();
+    _getWeather();
     _getRandMusic();
+  }
+
+  void _getWeather() async {
+    PermissionStatus permission = await LocationPermissions().requestPermissions();
+    Set filterCity = {'市', '区', '县', '省'};
+    await AMapLocationClient.startup(new AMapLocationOption(
+        desiredAccuracy: CLLocationAccuracy.kCLLocationAccuracyHundredMeters));
+    AMapLocation loc = await AMapLocationClient.getLocation(true);
+    String city = loc.city;
+    filterCity.forEach((e) {
+      if (city.contains(e)) {
+        city = city.replaceAll(e, '');
+      }
+    });
+    Map res = await weatherApi.getWeatherByCity(city);
+    setState(() {
+      weather = {
+        'city': city,
+        'temperature': res['temperature'],
+        'info': res['info'],
+      };
+    });
   }
 
   void _getRandMusic() async {
@@ -66,7 +95,18 @@ class _HomeState extends State<Home> {
     if (currentMusic == null) {
       return AppBar();
     }
-    return AppBar(title: Text(currentMusic['name']));
+    return AppBar(
+      title: Text(currentMusic['name']),
+      actions: <Widget>[
+        Container(
+            padding: EdgeInsets.all(15),
+            alignment: Alignment.bottomCenter,
+            child: weather == null
+                ? Text('正在定位')
+                : Text(
+                    '${weather['city']} · ${weather['info']}  ${weather['temperature']}°C'))
+      ],
+    );
   }
 
   Widget _body() {

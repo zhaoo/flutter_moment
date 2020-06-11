@@ -15,7 +15,9 @@ dependencies:
   http: ^0.12.1
   audioplayers: ^0.15.1
   transparent_image: ^1.0.0
-
+  amap_location: ^0.2.0
+  location_permissions: ^3.0.0+1
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
