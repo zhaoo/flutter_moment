@@ -29,12 +29,16 @@ class _HomeState extends State<Home> {
   }
 
   void _getWeather() async {
-    PermissionStatus permission = await LocationPermissions().requestPermissions();
-    Set filterCity = {'市', '区', '县', '省'};
+    PermissionStatus permission =
+        await LocationPermissions().requestPermissions();
+    if (!(permission == PermissionStatus.granted)) {
+      return;
+    }
     await AMapLocationClient.startup(new AMapLocationOption(
         desiredAccuracy: CLLocationAccuracy.kCLLocationAccuracyHundredMeters));
     AMapLocation loc = await AMapLocationClient.getLocation(true);
     String city = loc.city;
+    Set filterCity = {'市', '区', '县', '省'};
     filterCity.forEach((e) {
       if (city.contains(e)) {
         city = city.replaceAll(e, '');
@@ -51,24 +55,19 @@ class _HomeState extends State<Home> {
   }
 
   void _getRandMusic() async {
-    List playList = await cloudMusicApi.getPlayList();
-    int len = playList.length;
-    if (len > 0) {
-      Random rand = new Random();
-      int i = rand.nextInt(len);
-      var current = playList[i];
-      String url = await cloudMusicApi.getMusicUrl(current['id']);
-      var comment = await cloudMusicApi.getMusicComment(current['id']);
-      setState(() {
-        currentMusic = {
-          'url': url,
-          'name': current['name'],
-          'pic': current['al']['picUrl'],
-          'comment': comment['content'],
-          'commentUser': comment['user']['nickname'],
-        };
-      });
-    }
+    int id = await cloudMusicApi.getRandPlayList();
+    var current = await cloudMusicApi.getRandPlay(id);
+    String url = await cloudMusicApi.getMusicUrl(current['id']);
+    var comment = await cloudMusicApi.getMusicComment(current['id']);
+    setState(() {
+      currentMusic = {
+        'url': url,
+        'name': current['name'],
+        'pic': current['al']['picUrl'],
+        'comment': comment['content'],
+        'commentUser': comment['user']['nickname'],
+      };
+    });
   }
 
   void _playMusic() async {
@@ -88,15 +87,25 @@ class _HomeState extends State<Home> {
     return new Scaffold(
       appBar: _appBar(),
       body: _body(),
+      floatingActionButton: _floatingActionButton(),
     );
   }
 
+  Widget _floatingActionButton() {
+    return Container(
+        margin: EdgeInsets.fromLTRB(0, 0, 15, 15),
+        child: FloatingActionButton(
+          onPressed: () {
+            _showPlayControl();
+          },
+          child: Icon(Icons.album),
+          backgroundColor: Colors.black,
+        ));
+  }
+
   Widget _appBar() {
-    if (currentMusic == null) {
-      return AppBar();
-    }
     return AppBar(
-      title: Text(currentMusic['name']),
+      title: currentMusic == null ? Text('片刻') : Text(currentMusic['name']),
       actions: <Widget>[
         Container(
             padding: EdgeInsets.all(15),
@@ -114,7 +123,7 @@ class _HomeState extends State<Home> {
       return Container();
     }
     return Card(
-        margin: EdgeInsets.fromLTRB(15, 15, 15, 90),
+        margin: EdgeInsets.fromLTRB(15, 15, 15, 15),
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.all(Radius.circular(0))),
         elevation: 2,
@@ -127,33 +136,28 @@ class _HomeState extends State<Home> {
               height: MediaQuery.of(context).size.width - 30,
               fit: BoxFit.cover,
             ),
-            Container(
-                padding: EdgeInsets.all(30),
-                child: Column(
-                  children: <Widget>[
-                    Text(
-                      currentMusic['comment'].toString(),
-                      softWrap: true,
-                      textAlign: TextAlign.justify,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 5,
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    Container(
-                      alignment: Alignment.centerRight,
-                      margin: EdgeInsets.fromLTRB(0, 10, 0, 0),
-                      child: Text(
-                        "「 ${currentMusic['commentUser'].toString()} 」",
-                      ),
-                    ),
-                    FlatButton(
-                      onPressed: () {
-                        _showPlayControl();
-                      },
-                      child: playStatus == 'play' ? Text('暂停') : Text('播放'),
-                    )
-                  ],
-                ))
+            Expanded(
+                child: Container(
+                    padding: EdgeInsets.all(30),
+                    child: Column(
+                      children: <Widget>[
+                        Text(
+                          currentMusic['comment'].toString(),
+                          softWrap: true,
+                          textAlign: TextAlign.justify,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 5,
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        Container(
+                          alignment: Alignment.centerRight,
+                          margin: EdgeInsets.fromLTRB(0, 10, 0, 0),
+                          child: Text(
+                            "「 ${currentMusic['commentUser'].toString()} 」",
+                          ),
+                        )
+                      ],
+                    )))
           ],
         ));
   }
