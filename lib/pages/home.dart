@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_moment/api/cloud_music_api.dart';
 import 'package:flutter_moment/api/weather_api.dart';
-import 'dart:math';
 import 'package:transparent_image/transparent_image.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:amap_location/amap_location.dart';
@@ -16,6 +15,9 @@ class _HomeState extends State<Home> {
   WeatherApi weatherApi = new WeatherApi();
   CloudMusicApi cloudMusicApi = new CloudMusicApi();
   AudioPlayer audioPlayer = AudioPlayer();
+  AudioPlayerState playerState;
+  Duration position = new Duration(hours: 0, minutes: 0, seconds: 0);
+  Duration duration = new Duration(hours: 0, minutes: 0, seconds: 0);
 
   Map<String, String> currentMusic;
   Map<String, String> weather;
@@ -28,6 +30,12 @@ class _HomeState extends State<Home> {
     _getRandMusic();
   }
 
+  @override
+  void deactivate() async {
+    await audioPlayer.release();
+    super.deactivate();
+  }
+
   void _getWeather() async {
     PermissionStatus permission =
         await LocationPermissions().requestPermissions();
@@ -38,6 +46,7 @@ class _HomeState extends State<Home> {
         desiredAccuracy: CLLocationAccuracy.kCLLocationAccuracyHundredMeters));
     AMapLocation loc = await AMapLocationClient.getLocation(true);
     String city = loc.city;
+    print(city);
     Set filterCity = {'市', '区', '县', '省'};
     filterCity.forEach((e) {
       if (city.contains(e)) {
@@ -68,18 +77,6 @@ class _HomeState extends State<Home> {
         'commentUser': comment['user']['nickname'],
       };
     });
-  }
-
-  void _playMusic() async {
-    await audioPlayer.play(currentMusic['url']);
-  }
-
-  void _stopMusic() async {
-    await audioPlayer.stop();
-  }
-
-  void _pauseMusic() async {
-    await audioPlayer.pause();
   }
 
   @override
@@ -168,49 +165,81 @@ class _HomeState extends State<Home> {
         builder: (BuildContext context) {
           return StatefulBuilder(
               builder: (BuildContext context, StateSetter state) {
+            audioPlayer.onPlayerStateChanged.listen((AudioPlayerState s) {
+              state(() => playerState = s);
+            });
+
+            audioPlayer.onAudioPositionChanged.listen((Duration p) {
+              state(() => position = p);
+            });
+
+            audioPlayer.onDurationChanged.listen((Duration d) {
+              state(() => duration = d);
+            });
+
+            void _playMusic() async {
+              await audioPlayer.play(currentMusic['url']);
+            }
+
+            void _stopMusic() async {
+              await audioPlayer.stop();
+            }
+
+            void _pauseMusic() async {
+              await audioPlayer.pause();
+            }
+
             return Container(
-              height: 100,
-              child: Center(
-                child: Row(
+                height: 200,
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
-                    IconButton(
-                      iconSize: 36,
-                      icon: Icon(Icons.skip_previous),
-                      onPressed: () {
-                        _getRandMusic();
-                      },
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        IconButton(
+                          iconSize: 40,
+                          icon: Icon(Icons.skip_previous),
+                          onPressed: () {
+                            _pauseMusic();
+                            _getRandMusic();
+                          },
+                        ),
+                        IconButton(
+                          iconSize: 60,
+                          icon: playerState == AudioPlayerState.PLAYING
+                              ? Icon(Icons.pause)
+                              : Icon(Icons.play_arrow),
+                          onPressed: () {
+                            if (playerState == AudioPlayerState.PLAYING) {
+                              _pauseMusic();
+                            } else {
+                              _playMusic();
+                            }
+                          },
+                        ),
+                        IconButton(
+                          iconSize: 40,
+                          icon: Icon(Icons.skip_next),
+                          onPressed: () {
+                            _pauseMusic();
+                            _getRandMusic();
+                          },
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      iconSize: 48,
-                      icon: playStatus == 'play'
-                          ? Icon(Icons.pause)
-                          : Icon(Icons.play_arrow),
-                      onPressed: () {
-                        if (playStatus == 'play') {
-                          state(() {
-                            playStatus = 'pause';
-                          });
-                          _pauseMusic();
-                        } else {
-                          state(() {
-                            playStatus = 'play';
-                          });
-                          _playMusic();
-                        }
-                      },
-                    ),
-                    IconButton(
-                      iconSize: 36,
-                      icon: Icon(Icons.skip_next),
-                      onPressed: () {
-                        _getRandMusic();
+                    Slider(
+                      value: position.inSeconds.toDouble(),
+                      max: duration.inSeconds.toDouble(),
+                      min: 0.0,
+                      activeColor: Colors.black,
+                      inactiveColor:Colors.black12,
+                      onChanged: (double val) async {
+                        await audioPlayer.seek(Duration(seconds: val.toInt()));
                       },
                     ),
                   ],
-                ),
-              ),
-            );
+                ));
           });
         });
   }
