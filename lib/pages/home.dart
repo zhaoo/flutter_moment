@@ -45,8 +45,7 @@ class _HomeState extends State<Home> {
     await AMapLocationClient.startup(new AMapLocationOption(
         desiredAccuracy: CLLocationAccuracy.kCLLocationAccuracyHundredMeters));
     AMapLocation loc = await AMapLocationClient.getLocation(true);
-    String city = loc.city;
-    print(city);
+    String city = loc.city == null ? '杭州' : loc.city;
     Set filterCity = {'市', '区', '县', '省'};
     filterCity.forEach((e) {
       if (city.contains(e)) {
@@ -63,7 +62,7 @@ class _HomeState extends State<Home> {
     });
   }
 
-  void _getRandMusic() async {
+  Future<void> _getRandMusic() async {
     int id = await cloudMusicApi.getRandPlayList();
     var current = await cloudMusicApi.getRandPlay(id);
     String url = await cloudMusicApi.getMusicUrl(current['id']);
@@ -152,7 +151,7 @@ class _HomeState extends State<Home> {
                           child: Text(
                             "「 ${currentMusic['commentUser'].toString()} 」",
                           ),
-                        )
+                        ),
                       ],
                     )))
           ],
@@ -189,6 +188,12 @@ class _HomeState extends State<Home> {
               await audioPlayer.pause();
             }
 
+            void _nextMusic() async {
+              _stopMusic();
+              await _getRandMusic();
+              _playMusic();
+            }
+
             return Container(
                 height: 200,
                 child: Column(
@@ -201,8 +206,7 @@ class _HomeState extends State<Home> {
                           iconSize: 40,
                           icon: Icon(Icons.skip_previous),
                           onPressed: () {
-                            _pauseMusic();
-                            _getRandMusic();
+                            _nextMusic();
                           },
                         ),
                         IconButton(
@@ -222,8 +226,7 @@ class _HomeState extends State<Home> {
                           iconSize: 40,
                           icon: Icon(Icons.skip_next),
                           onPressed: () {
-                            _pauseMusic();
-                            _getRandMusic();
+                            _nextMusic();
                           },
                         ),
                       ],
@@ -233,7 +236,7 @@ class _HomeState extends State<Home> {
                       max: duration.inSeconds.toDouble(),
                       min: 0.0,
                       activeColor: Colors.black,
-                      inactiveColor:Colors.black12,
+                      inactiveColor: Colors.black12,
                       onChanged: (double val) async {
                         await audioPlayer.seek(Duration(seconds: val.toInt()));
                       },
