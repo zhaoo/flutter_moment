@@ -101,7 +101,7 @@ class _HomeState extends State<Home> {
 
   Widget _appBar() {
     return AppBar(
-      title: currentMusic == null ? Text('片刻') : Text(currentMusic['name']),
+      title: currentMusic == null ? Text('Moment') : Text(currentMusic['name']),
       actions: <Widget>[
         Container(
             padding: EdgeInsets.all(15),
