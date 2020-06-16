@@ -1,6 +1,6 @@
 # Moment
 
-你永远不知道下一首是什么歌，就像生活一样，但是你有此时此刻。
+你永远不知道下一首会是什么歌，就像生活一样，但是你拥有此时此刻。
 
 [Moment](https://github.com/izhaoo/flutter_moment/releases)
 
